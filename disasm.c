@@ -52,6 +52,7 @@ static char      *pfixup;              // Pointer to possible fixups or NULL
 static ulong     size;                 // Remaining size of the command buffer
 static t_disasm  *da;                  // Pointer to disassembly results
 static int       mode;                 // Disassembly mode (DISASM_xxx)
+static int       code_format;
 
 // Disassemble name of 1, 2 or 4-byte general-purpose integer register and, if
 // requested and available, dump its contents. Parameter type changes decoding
@@ -143,6 +144,7 @@ static void Memadr(int defseg,const char *descr,long offset,int dsize)
 	int i, n, seg;
 	char* pr = { 0 };
 	char s[TEXTLEN] = { 0 };
+	char strformat[32] = { "%lX" };
 	if (mode < DISASM_FILE || descr == NULL)
 		return;                            // No need or possibility to decode
 	pr = da->result + nresult;
@@ -190,13 +192,75 @@ static void Memadr(int defseg,const char *descr,long offset,int dsize)
 			if (*descr != '\0') pr[n++] = '+';
 			strcpy(pr + n, s); n += i;
 		}
-		else if (offset<0 && offset>-16384 && *descr != '\0')
-			n += sprintf(pr + n, "-%lX", -offset);
 		else
 		{
-			if (*descr != '\0') 
-				pr[n++] = '+';
-			n += sprintf(pr + n, "%lX", offset);
+			uchar bytearry[4] = { 0 };
+			uchar b = 0;
+			int j = 0;
+
+			if (offset<0 && offset>-16384 && *descr != '\0')
+			{
+
+				*(long*)bytearry = -offset;
+				for (j = 3; j >= 0 && bytearry[j] == 0; j--);
+				if (j < 0)
+					j = 0;
+				b = bytearry[j];
+				if (b > 0xf)
+					b >>= 4;
+				if (b > 9)
+					sprintf(strformat, "-0%%X");
+				else
+					sprintf(strformat, "-%%X");
+				if (offset > 9)
+				{
+					if (code_format == 1)
+					{
+						if (b > 9)
+							sprintf(strformat, "-0%%XH");
+						else
+							sprintf(strformat, "-%%XH");
+					}
+					if (code_format == 2)
+					{
+						sprintf(strformat, "-0x%%X");
+					}
+				}
+				n += sprintf(pr + n, strformat, -offset);
+			}
+			else
+			{
+
+				*(long*)bytearry = offset;
+				for (j = 3; j >= 0 && bytearry[j] == 0; j--); if (j < 0)j = 0;
+				b = bytearry[j];
+				if (b > 0xf)
+				{
+					b >>= 4;
+				}
+				if (b > 9)
+					sprintf(strformat, "0%%X");
+				else
+					sprintf(strformat, "%%X");
+				if (offset > 9)
+				{
+
+
+					if (code_format == 1)
+					{
+						if (b > 9)
+							sprintf(strformat, "0%%XH");
+						else
+							sprintf(strformat, "%%XH");
+					}
+					if (code_format == 2)
+					{
+						sprintf(strformat, "0x%%X");
+					}
+				}
+				if (*descr != '\0') pr[n++] = '+';
+				n += sprintf(pr + n, strformat, offset);
+			}
 		}
 	}
   pr[n++] = ']';
@@ -657,10 +721,65 @@ static void DecodeIM(int constsize,int sxt,int type)
 		  strcpy(da->result + nresult, name);
 		  nresult += i;
 	  }
-	  else if (type == IMU || type == IMS || type == IM2 || data >= 0 || data < NEGLIMIT)
-		  nresult += sprintf(da->result + nresult, "%lX", data);
 	  else
-		  nresult += sprintf(da->result + nresult, "-%lX", -data);
+	  {
+		  char strformat1[32] = { "-%lX" };
+		  char strformat2[32] = { "%lX" };
+		  uchar bytearry[4] = { 0 };
+		  uchar b = 0;
+		  int j = 0;
+		  if (data<0 && data>-0xff)
+			  * (long*)bytearry = -data;
+		  else
+			  *(long*)bytearry = data;
+		  for (j = 3; j >= 0 && bytearry[j] == 0; j--);
+		  if (j < 0)j = 0;
+		  b = bytearry[j];
+		  if (b > 0xf)
+			  b >>= 4;
+		  if (b > 9)
+		  {
+			  sprintf(strformat1, "-0%%X");
+			  sprintf(strformat2, "0%%X");
+		  }
+		  else
+		  {
+			  sprintf(strformat1, "-%%X");
+			  sprintf(strformat2, "%%X");
+		  }
+
+		  if (*(DWORD*)bytearry > 9)
+		  {
+			  if (code_format == 1)
+			  {
+				  if (code_format && b > 9)
+				  {
+					  sprintf(strformat1, "-0%%XH");
+					  sprintf(strformat2, "0%%XH");
+				  }
+				  else
+				  {
+					  sprintf(strformat1, "-%%XH");
+					  sprintf(strformat2, "%%XH");
+				  }
+			  }
+			  if (code_format == 2)
+			  {
+
+				  sprintf(strformat1, "-0x%%X");
+				  sprintf(strformat2, "0x%%X");
+			  }
+		  }
+		  if (type == IMU || type == IMS || type == IM2 || data >= 0 || data < NEGLIMIT)
+		  {
+			  if (data<0 && data>-0xff)
+				  nresult += sprintf(da->result + nresult, strformat1, -data);
+			  else
+				  nresult += sprintf(da->result + nresult, strformat2, data);
+		  }
+		  else
+			  nresult += sprintf(da->result + nresult, strformat1, -data);
+	  }
 	  if (addcomment && comment[0] != '\0') strcpy(da->comment, comment);
   }
 }
@@ -768,7 +887,36 @@ static void DecodeRJ(ulong offsize,ulong nextip)
 		else
 			i = 0;
 		if (symbolic == 0 || i == 0)
-			nresult += sprintf(da->result + nresult, "%08lX", addr);
+		{
+			uchar bytearry[4] = { 0 };
+			*(ulong*)bytearry = addr;
+			uchar b = 0;
+			int j;
+			for (j = 3; j >= 0 && bytearry[j] == 0; j--); if (j < 0)j = 0;
+			b = bytearry[j];
+			if (b > 0xf)
+			{
+				b >>= 4;
+			}
+			char strformat[16];
+			if (b > 9)
+			{
+				sprintf(strformat, "0%%%dX", j * 2);
+				if (code_format == 1)
+					sprintf(strformat, "0%%%dXH", j * 2);
+				if (code_format == 2)
+					sprintf(strformat, "0x%%%dX", j * 2);
+			}
+			else
+			{
+				sprintf(strformat, "%%%dX", j * 2);
+				if (code_format == 1)
+					sprintf(strformat, "%%%dXH", j * 2);
+				if (code_format == 2)
+					sprintf(strformat, "0x%%%dX", j * 2);
+			}
+			nresult += sprintf(da->result + nresult, strformat, addr);
+		}
 		else
 			nresult += sprintf(da->result + nresult, "%.*s", TEXTLEN - nresult - 25, s);
 		if (symbolic == 0 && i != 0 && da->comment[0] == '\0')
@@ -973,6 +1121,13 @@ ulong Disasm(char *src,ulong srcsize,ulong srcip,t_disasm *disasm,int disasmmode
 	pfixup = NULL;
 	softerror = 0;
 	is3dnow = 0;
+
+	ideal = disasm->ideal;
+	code_format = disasm->code_format;
+	lowercase = disasm->lowercase;
+	putdefseg = disasm->putdefseg;
+
+
 	da = disasm;
 	da->ip = srcip;
 	da->comment[0] = '\0';
@@ -989,6 +1144,9 @@ ulong Disasm(char *src,ulong srcsize,ulong srcip,t_disasm *disasm,int disasmmode
 	da->fixupsize = 0;
 	da->warnings = 0;
 	da->error = DAE_NOERR;
+
+
+
 	mode = disasmmode;                    // No need to use register contents
   // Correct 80x86 command may theoretically contain up to 4 prefixes belonging
   // to different prefix groups. This limits maximal possible size of the
@@ -1621,6 +1779,27 @@ ulong Disasm(char *src,ulong srcsize,ulong srcip,t_disasm *disasm,int disasmmode
 			strcpy(da->comment, "Unaligned stack operation");
 		;
 	}
-	return (srcsize-size);               // Returns number of recognized bytes
+	disasm->bytes = (uchar)(srcsize - size);
+	disasm->index += disasm->bytes;
+	return disasm->bytes;               // Returns number of recognized bytes
 }
+static int struct_init = 0;
+unsigned long Disasm32(void* src, t_disasm* disasm, unsigned long startaddr, int disasmmode)
+{
+	if (!startaddr)	startaddr = 0x401000;
+	if (!disasmmode)	disasmmode = DISASM_CODE;
+	if (struct_init != 0x88888888)
+	{
+		struct_init = 0x88888888;
 
+		disasm->ip = 0;
+		disasm->index = 0;
+		disasm->bytes = 0;
+
+		if (disasm->ideal != 1)disasm->ideal = 0;
+		if (disasm->code_format != 1 && disasm->code_format != 2)disasm->code_format = 0;
+		if (disasm->lowercase != 1)disasm->lowercase = 1;
+		if (disasm->putdefseg != 1)disasm->putdefseg = 0;
+	}
+	return(Disasm((unsigned char*)src + disasm->index, 20, startaddr + disasm->index, disasm, disasmmode));
+}

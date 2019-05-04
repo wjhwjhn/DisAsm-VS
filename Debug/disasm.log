@@ -1,0 +1,4 @@
+﻿cl : 命令行 warning D9025: 正在重写“/sdl-”(用“/GS-”)
+  main.c
+C:\Users\wjh\source\repos\DisasmVC\main.c(78): warning C4013: “Disasm32”未定义；假设外部返回 int
+  disasm.vcxproj -> C:\Users\wjh\source\repos\DisasmVC\Debug\disasm.exe

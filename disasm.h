@@ -270,27 +270,39 @@ extern const t_cmddata dangerous[];
 #define DAW_DANGER95   0x1000          // May mess up Win95 if executed
 #define DAW_DANGEROUS  0x3000          // May mess up any OS if executed
 
-typedef struct t_disasm {              // Results of disassembling
-  ulong          ip;                   // Instrucion pointer
-  char           dump[TEXTLEN];        // Hexadecimal dump of the command
-  char           result[TEXTLEN];      // Disassembled command
-  char           comment[TEXTLEN];     // Brief comment
-  int            cmdtype;              // One of C_xxx
-  int            memtype;              // Type of addressed variable in memory
-  int            nprefix;              // Number of prefixes
-  int            indexed;              // Address contains register(s)
-  ulong          jmpconst;             // Constant jump address
-  ulong          jmptable;             // Possible address of switch table
-  ulong          adrconst;             // Constant part of address
-  ulong          immconst;             // Immediate constant
-  int            zeroconst;            // Whether contains zero constant
-  int            fixupoffset;          // Possible offset of 32-bit fixups
-  int            fixupsize;            // Possible total size of fixups or 0
-  int            error;                // Error while disassembling command
-  int            warnings;             // Combination of DAW_xxx
+typedef struct t_disasm 
+{              // Results of disassembling
+	unsigned long          ip;           // Instrucion pointer
+	char           dump[TEXTLEN];        // Hexadecimal dump of the command
+	char			 cmdstr[8];			   // Disassembled command
+	char           result[TEXTLEN];      // 不包括汇编指令的汇编代码
+
+	unsigned char	 bytes;				   // 机器码指令的字节数
+	char           comment[TEXTLEN];     // Brief comment
+	int            cmdtype;              // One of C_xxx
+	int            memtype;              // Type of addressed variable in memory
+	int            nprefix;              // Number of prefixes
+	int            indexed;              // Address contains register(s)
+
+	unsigned long          jmpconst;             // Constant jump address
+	unsigned long          jmptable;             // Possible address of switch table
+	unsigned long          adrconst;             // Constant part of address
+	unsigned long          immconst;             // Immediate constant
+	int            zeroconst;            // Whether contains zero constant
+	int            fixupoffset;          // Possible offset of 32-bit fixups
+	int            fixupsize;            // Possible total size of fixups or 0
+	int            error;                // Error while disassembling command
+	int            warnings;             // Combination of DAW_xxx 
+
+	unsigned long	 index;				   // 当前数据缓冲区的索引直
+	int       ideal;                // Force IDEAL decoding mode
+	int       lowercase;            // Force lowercase display
+	int       putdefseg;            // Display default segments in listing
+	int       code_format;		   // 反汇编代码格式.0-普通,1-在立即数后面加上'H',2-立即数为C格式
 } t_disasm;
 
-typedef struct t_asmmodel {            // Model to search for assembler command
+typedef struct t_asmmodel 
+{            // Model to search for assembler command
   char           code[MAXCMDSIZE];     // Binary code
   char           mask[MAXCMDSIZE];     // Mask for binary code (0: bit ignored)
   int            length;               // Length of code, bytes (0: empty)

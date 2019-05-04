@@ -100,13 +100,13 @@ typedef struct t_asmoperand {
   int            jmpmode;              // Specified jump size
 } t_asmoperand;
 
-static char      *asmcmd;              // Pointer to 0-terminated source line
+static char*	 asmcmd = { 0 };              // Pointer to 0-terminated source line
 static int       scan;                 // Type of last scanned element
 static int       prio;                 // Priority of operation (0: highest)
-static char      sdata[TEXTLEN];       // Last scanned name (depends on type)
+static char      sdata[TEXTLEN] = { 0 };       // Last scanned name (depends on type)
 static long      idata;                // Last scanned value
 static long      double fdata;         // Floating-point number
-static char      *asmerror;            // Explanation of last error, or NULL
+static char*	 asmerror = { 0 };            // Explanation of last error, or NULL
 
 // Simple and slightly recursive scanner shared by Assemble(). The scanner is
 // straightforward and ineffective, but high speed is not a must here. As
@@ -119,12 +119,14 @@ static void Scanasm(int mode)
 	int i, j, base, maxdigit;
 	long decimal, hex;
 	long double floating, divisor;
-	char s[TEXTLEN], * pcmd;
+	char s[TEXTLEN] = { 0 }, * pcmd = { 0 };
 	sdata[0] = '\0';
 	idata = 0;
 	if (asmcmd == NULL)
 	{
-		asmerror = "NULL input line"; scan = SCAN_ERR; return;
+		asmerror = "NULL input line";
+		scan = SCAN_ERR;
+		return;
 	}
 	while (*asmcmd == ' ' || *asmcmd == '\t')
 		asmcmd++;                          // Skip leading spaces
@@ -374,7 +376,8 @@ static void Scanasm(int mode)
 			return;
 		};
 		asmerror = "Unknown identifier";
-		scan = SCAN_ERR; return; 
+		scan = SCAN_ERR;
+		return; 
 	}
 	else if (isdigit(*asmcmd))
 	{         // Constant
@@ -404,14 +407,16 @@ static void Scanasm(int mode)
 		if (maxdigit == 0)
 		{
 			asmerror = "Hexadecimal digits after 0x... expected";
-			scan = SCAN_ERR; return;
+			scan = SCAN_ERR;
+			return;
 		}
 		if (toupper(*asmcmd) == 'H')
 		{       // Force hexadecimal number
 			if (base == 16) 
 			{
 				asmerror = "Please don't mix 0xXXXX and XXXXh forms";
-				scan = SCAN_ERR; return;
+				scan = SCAN_ERR;
+				return;
 			}
 			asmcmd++;
 			idata = hex; scan = SCAN_ICONST;
@@ -422,7 +427,8 @@ static void Scanasm(int mode)
 		{                // Force decimal number
 			if (base == 16 || maxdigit > 9)
 			{
-				asmerror = "Not a decimal number"; scan = SCAN_ERR; 
+				asmerror = "Not a decimal number";
+				scan = SCAN_ERR; 
 				return;
 			}
 			asmcmd++;
@@ -481,17 +487,23 @@ static void Scanasm(int mode)
 		asmcmd++;
 		if (*asmcmd == '\0' || (*asmcmd == '\\' && asmcmd[1] == '\0'))
 		{
-			asmerror = "Unterminated character constant"; scan = SCAN_ERR; return;
+			asmerror = "Unterminated character constant";
+			scan = SCAN_ERR;
+			return;
 		}
 		if (*asmcmd == '\'')
 		{
-			asmerror = "Empty character constant"; scan = SCAN_ERR; return;
+			asmerror = "Empty character constant";
+			scan = SCAN_ERR;
+			return;
 		}
 		if (*asmcmd == '\\') asmcmd++;
 		idata = *asmcmd++;
 		if (*asmcmd != '\'')
 		{
-			asmerror = "Unterminated character constant"; scan = SCAN_ERR; return;
+			asmerror = "Unterminated character constant";
+			scan = SCAN_ERR;
+			return;
 		}
 		asmcmd++;
 		while (*asmcmd == ' ' || *asmcmd == '\t') asmcmd++;
@@ -558,7 +570,9 @@ static void Scanasm(int mode)
 			{              // Import pseudolabel (for internal use)
 				if ((mode & SA_IMPORT) == 0)
 				{
-					asmerror = "Syntax error"; scan = SCAN_ERR; return;
+					asmerror = "Syntax error";
+					scan = SCAN_ERR;
+					return;
 				}
 				asmcmd++; i = 0;
 				while (*asmcmd != '\0' && *asmcmd != '>')
@@ -566,12 +580,16 @@ static void Scanasm(int mode)
 					sdata[i++] = *asmcmd++;
 					if (i >= sizeof(sdata))
 					{
-						asmerror = "Too long import name"; scan = SCAN_ERR; return;
+						asmerror = "Too long import name";
+						scan = SCAN_ERR;
+						return;
 					}
 				}
 				if (*asmcmd != '>')
 				{
-					asmerror = "Unterminated import name"; scan = SCAN_ERR; return;
+					asmerror = "Unterminated import name";
+					scan = SCAN_ERR;
+					return;
 				}
 				asmcmd++; sdata[i] = '\0';
 				scan = SCAN_IMPORT; return;
@@ -610,10 +628,13 @@ static void Scanasm(int mode)
 // with operand's data. Expects that first token of the operand is already
 // scanned. Supports operands in generalized form (for example, R32 means any
 // of general-purpose 32-bit integer registers).
+// 从输入行获取一个完整的操作数，并用操作数的数据填充结构op
+// 期望已扫描操作数的第一个标记
+// 支持通用形式的操作数（例如，R32表示任何通用32位整数寄存器）
 static void Parseasmoperand(t_asmoperand *op) 
 {
-	int i, j, bracket, sign, xlataddr;
-	int reg, r[9];
+	int i = 0, j = 0, bracket = 0, sign = 0, xlataddr = 0;
+	int reg = 0, r[9] = { 0 };
 	long offset;
 	if (scan == SCAN_EOL || scan == SCAN_ERR)
 		return;                            // No or bad operand
@@ -674,7 +695,8 @@ static void Parseasmoperand(t_asmoperand *op)
 		if (scan != SCAN_ICONST && scan != SCAN_DCONST && scan != SCAN_OFS)
 		{
 			asmerror = "Integer number expected";
-			scan = SCAN_ERR; return;
+			scan = SCAN_ERR;
+			return;
 		}
 		op->type = IMM; op->offset = -idata;
 		if (scan == SCAN_OFS) op->anyoffset = 1;
@@ -685,7 +707,8 @@ static void Parseasmoperand(t_asmoperand *op)
 		if (scan != SCAN_ICONST && scan != SCAN_DCONST && scan != SCAN_OFS)
 		{
 			asmerror = "Integer number expected";
-			scan = SCAN_ERR; return;
+			scan = SCAN_ERR;
+			return;
 		}
 		op->type = IMM;
 		op->offset = idata;
@@ -786,7 +809,8 @@ static void Parseasmoperand(t_asmoperand *op)
 		if (bracket == 0)
 		{
 			asmerror = "Address expression requires brackets";
-			scan = SCAN_ERR; return;
+			scan = SCAN_ERR;
+			return;
 		}
 		// Assembling a 32-bit address may be a kind of nigthmare, due to a large
 		// number of allowed forms. Parser collects immediate offset in op->offset
@@ -853,15 +877,21 @@ static void Parseasmoperand(t_asmoperand *op)
 					if (scan == SCAN_ERR) return;
 					if (scan == SCAN_OFS) 
 					{
-						asmerror = "Undefined scale is not allowed"; scan = SCAN_ERR; return;
+						asmerror = "Undefined scale is not allowed";
+						scan = SCAN_ERR;
+						return;
 					}
 					if (scan != SCAN_ICONST && scan != SCAN_DCONST) 
 					{
-						asmerror = "Syntax error"; scan = SCAN_ERR; return;
+						asmerror = "Syntax error";
+						scan = SCAN_ERR;
+						return;
 					}
 					if (idata == 6 || idata == 7 || idata > 9) 
 					{
-						asmerror = "Invalid scale"; scan = SCAN_ERR; return;
+						asmerror = "Invalid scale";
+						scan = SCAN_ERR;
+						return;
 					}
 					r[reg] += idata;
 					Scanasm(0);
@@ -889,20 +919,27 @@ static void Parseasmoperand(t_asmoperand *op)
 					if (scan == SCAN_ERR) return;
 					if (sign == '-') 
 					{
-						asmerror = "Unable to subtract register"; scan = SCAN_ERR; return;
+						asmerror = "Unable to subtract register";
+						scan = SCAN_ERR;
+						return;
 					}
 					if (scan == SCAN_REG16) 
 					{
 						asmerror = "Sorry, 16-bit addressing is not supported";
-						scan = SCAN_ERR; return;
+						scan = SCAN_ERR;
+						return;
 					}
 					if (scan != SCAN_REG32) 
 					{
-						asmerror = "Syntax error"; scan = SCAN_ERR; return;
+						asmerror = "Syntax error";
+						scan = SCAN_ERR;
+						return;
 					}
 					if (offset == 6 || offset == 7 || offset > 9) 
 					{
-						asmerror = "Invalid scale"; scan = SCAN_ERR; return;
+						asmerror = "Invalid scale";
+						scan = SCAN_ERR;
+						return;
 					}
 					r[idata] += offset;
 					Scanasm(0);
@@ -920,7 +957,8 @@ static void Parseasmoperand(t_asmoperand *op)
 				Scanasm(0);
 				if (scan == SCAN_SYMB && idata == '*') 
 				{
-					asmerror = "Undefined scale is not allowed"; scan = SCAN_ERR;
+					asmerror = "Undefined scale is not allowed";
+					scan = SCAN_ERR;
 					return;
 				}
 				else 
@@ -949,7 +987,8 @@ static void Parseasmoperand(t_asmoperand *op)
 			}
 			if (i <= 8 || r[REG_EBX] != 1 || op->offset != 0 || op->anyoffset != 0)
 			{
-				asmerror = "Invalid address"; scan = SCAN_ERR;
+				asmerror = "Invalid address";
+				scan = SCAN_ERR;
 				return;
 			}
 			op->type = MXL;
@@ -966,9 +1005,12 @@ static void Parseasmoperand(t_asmoperand *op)
 				{
 					if (op->index >= 0 || op->base >= 0) 
 					{
-						if (j == 0) asmerror = "Invalid scale";
-						else asmerror = "Too many registers";
-						scan = SCAN_ERR; return;
+						if (j == 0) 
+							asmerror = "Invalid scale";
+						else 
+							asmerror = "Too many registers";
+						scan = SCAN_ERR;
+						return;
 					}
 					op->index = op->base = i;
 					op->scale = r[i] - 1;
@@ -977,9 +1019,12 @@ static void Parseasmoperand(t_asmoperand *op)
 				{
 					if (op->index >= 0) 
 					{
-						if (j <= 1) asmerror = "Only one register may be scaled";
-						else asmerror = "Too many registers";
-						scan = SCAN_ERR; return;
+						if (j <= 1) 
+							asmerror = "Only one register may be scaled";
+						else 
+							asmerror = "Too many registers";
+						scan = SCAN_ERR;
+						return;
 					}
 					op->index = i; op->scale = r[i];
 				}
@@ -994,12 +1039,15 @@ static void Parseasmoperand(t_asmoperand *op)
 					else 
 					{
 						asmerror = "Too many registers";
-						scan = SCAN_ERR; return;
+						scan = SCAN_ERR;
+						return;
 					}
 				}
 				else 
 				{
-					asmerror = "Invalid scale"; scan = SCAN_ERR; return;
+					asmerror = "Invalid scale";
+					scan = SCAN_ERR;
+					return;
 				}
 				j++;
 			}
@@ -1043,15 +1091,15 @@ static void Parseasmoperand(t_asmoperand *op)
 
 int Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,int constsize,char *errtext) 
 {
-	int i, j, k, namelen, nameok, arg, match, datasize, addrsize, bytesize, minop, maxop;
-	int rep, lock, segment, jmpsize, jmpmode, longjump;
-	int hasrm, hassib, dispsize, immsize;
-	int anydisp, anyimm, anyjmp;
-	long l, displacement, immediate, jmpoffset;
-	char name[32], * nameend;
-	char tcode[MAXCMDSIZE], tmask[MAXCMDSIZE];
-	t_asmoperand aop[3], * op;             // Up to 3 operands allowed
-	const t_cmddata* pd;
+	int i = 0, j = 0, k = 0, namelen = 0, nameok = 0, arg = 0, match = 0, datasize, addrsize = 0, bytesize = 0, minop = 0, maxop = 0;
+	int rep = 0, lock = 0, segment = 0, jmpsize = 0, jmpmode = 0, longjump = 0;
+	int hasrm = 0, hassib = 0, dispsize = 0, immsize = 0;
+	int anydisp = 0, anyimm = 0, anyjmp = 0;
+	long l = 0, displacement = 0, immediate = 0, jmpoffset = 0;
+	char name[32] = { 0 }, * nameend = { 0 };
+	char tcode[MAXCMDSIZE] = { 0 }, tmask[MAXCMDSIZE] = {0};
+	t_asmoperand aop[3] = { 0 }, * op = { 0 };             // Up to 3 operands allowed
+	const t_cmddata* pd = { 0 };
 	if (model != NULL) model->length = 0;
 	if (cmd == NULL || model == NULL || errtext == NULL)
 	{
@@ -1060,7 +1108,8 @@ int Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,int constsize,char
 		return 0;
 	}                       // Error in parameters
 	asmcmd = cmd;
-	rep = lock = 0; errtext[0] = '\0';
+	rep = lock = 0;
+	errtext[0] = '\0';
 	Scanasm(SA_NAME);
 	if (scan == SCAN_EOL)                  // End of line, nothing to assemble
 		return 0;
@@ -1131,7 +1180,8 @@ int Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,int constsize,char
 	}
 	if (scan != SCAN_EOL)
 	{
-		strcpy(errtext, "Extra input after operand"); goto error;
+		strcpy(errtext, "Extra input after operand"); 
+		goto error;
 	}
   // If jump size is not specified, function tries to use short jump. If
   // attempt fails, it retries with long form.
@@ -1288,7 +1338,7 @@ int Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,int constsize,char
 				if (op->type != NNN)             // No more arguments
 					match |= MA_NOP;
 				break;
-			};
+			}
 			if (op->type == NNN)
 			{
 				match |= MA_NOP; break;
@@ -1586,10 +1636,12 @@ int Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,int constsize,char
 			goto error;
 		}
 		else if (datasize > 1)
+		{
 			tcode[i] |= 0x01;                  // WORD or DWORD size of operands
+		}	
 		tmask[i] |= 0x01;
 	}
-	else if (pd->bits == W3);
+	else if (pd->bits == W3)
 	{
 		if (datasize == 0)
 		{

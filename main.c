@@ -45,67 +45,99 @@ int Printfloat8(char *s,double d) - 将8字节浮点常量转换为文本而不会导致异常.
 
 int main(main) 
 {
-	int i,j,n;
-	char* pasm;
-	char s[TEXTLEN], errtext[TEXTLEN];
-	ulong l;
-	t_disasm da;
-	t_asmmodel am;
+	int i=0,j=0,n=0;
+	char* pasm = {0};
+	char s[TEXTLEN] = { 0 }, errtext[TEXTLEN] = {0};
+	ulong l=0;
+	t_disasm da = {0};
+	t_asmmodel am = {0};
+	BYTE buf[65 + 8] =
+	{
+		/*0xC6 ,0x84 ,0x24 ,0xD0 ,03 ,00 ,00 ,00,*/
+		0xff,0xE0,0x55,0x8B,0xEC,0x51,0x51,0x53,0x56,0x57,\
+		0x64,0x8B,0x35,0x00,0x00,0x00,0x00,0x89,0x75,0xFC,\
+		0xC7,0x45,0xF8,0xF4,0x25,0xd2,0x00,0x6A,0x00,0xFF,\
+		0x75,0x0C,0xFF,0x75,0xF8,0xFF,0x75,0x08,0xE8,0x76,\
+		0x1F,0x01,0x00,0x8B,0x45,0x0C,0x8B,0x40,0x04,0x83,\
+		0xE0,0xFD,0x8B,0x4D,0x0C,0x89,0x41,0x04,0x64,0x8B,\
+		0x3D,0x00,0x00,0x00,0x00
+	};
+	printf("\
+			=====================================================\r\n");
+	char* str = "\
+			  0xff,0xE0,0x55,0x8B,0xEC,0x51,0x51,0x53,0x56,0x57,\r\n\
+			  0x64,0x8B,0x35,0x00,0x00,0x00,0x00,0x89,0x75,0xFC,\r\n\
+			  0xC7,0x45,0xF8,0xF4,0x25,0x42,0x00,0x6A,0x00,0xFF,\r\n\
+			  0x75,0x0C,0xFF,0x75,0xF8,0xFF,0x75,0x08,0xE8,0x76,\r\n\
+			  0x1F,0x01,0x00,0x8B,0x45,0x0C,0x8B,0x40,0x04,0x83,\r\n\
+			  0xE0,0xFD,0x8B,0x4D,0x0C,0x89,0x41,0x04,0x64,0x8B,\r\n\
+			  0x3D,0x00,0x00,0x00,0x00\r\n下面是上面的数据的反汇编:\r\n";
+	printf(str);
+	for (unsigned long i = 0; i < 65;)
+	{
+		l = Disasm32(buf, &da, 0x410000, 4);
+		i += l;
+		printf("%08x  %-24s%-8s%-30s;%-3ibyte\r\n", da.ip, da.dump, da.cmdstr, da.result, da.bytes);
+	}
+	printf("\r\n=============================================================================\r\nCALL 45187C 反汇编\r\n\n");
+	// CALL 45187C 反汇编
+	l = Disasm("\xE8\x1F\x14\x00\x00",
+		5, 0x450458, &da, 3);
+	printf("%3i  %-24s%-8s%-20s   jmpconst=%4X\r\n", l, da.dump, da.cmdstr, da.result, da.jmpconst);
+	printf("\r\n=============================================================================\r\nJNZ 450517 反汇编\r\n\n");
+	// JNZ 450517 的反汇编
+	l = Disasm("\x75\x72",
+		2, 0xD504A300, &da, DISASM_CODE);
+	printf("%3i  %-24s%-8s%-20s   jmpconst=%4X\r\n", l, da.dump, da.cmdstr, da.result, da.jmpconst);
 
-//反汇编程序的演示。
-  printf("反汇编:\n");
+	printf("\r\n=============================================================================\r\n");
 
-  //快速确定命令的大小。
-  l=Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00\x11\x22\x33\x44\x55\x66",10,0x400000,&da,DISASM_SIZE);
-  printf("命令的大小 = %i bytes\n",l);
 
-  // ADD [475AE0],1 MASM 模式, 不显示默认段
-  ideal = 0; lowercase = 1; putdefseg = 0;
-  l=Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00",10,0x400000,&da,DISASM_CODE);
-  printf("%3i  %-24s  %-24s   (MASM)\n",l,da.dump,da.result);
 
-  // ADD [475AE0],1 IDEAL 模式, 大写, 显示默认段
-  ideal=1; lowercase=0; putdefseg=1;
-  l=Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00",10,0x400000,&da,DISASM_CODE);
-  printf("%3i  %-24s  %-24s   (IDEAL)\n",l,da.dump,da.result);
 
-  // CALL 45187C
-  l=Disasm("\xE8\x1F\x14\x00\x00",5,0x450458,&da,DISASM_CODE);
-  printf("%3i  %-24s  %-24s   jmpconst=%08X\n",l,da.dump,da.result,da.jmpconst);
 
-  // JNZ 450517
-  l=Disasm("\x75\x72",2,0x4504A3,&da,DISASM_CODE);
-  printf("%3i  %-24s  %-24s   jmpconst=%08X\n",l,da.dump,da.result,da.jmpconst);
 
-  // 汇编程序的演示
-  printf("\n汇编:\n");
 
-  // 汇编上面的命令. 组装上面的命令之一。 首先使用32位尝试
-  pasm="ADD [DWORD 475AE0],1";
-  printf("%s:\n",pasm);
-  j=Assemble(pasm,0x400000,&am,0,0,errtext);
-  n=sprintf(s,"%3i  ",j);
-  for (i=0; i<j; i++) n+=sprintf(s+n,"%02X ",am.code[i]);
-  if (j<=0) sprintf(s+n,"  error=\"%s\"",errtext);
-  printf("%s\n",s);
+	//反汇编程序的演示。
+	printf("\nAssembler:\r\n");
 
-  // 然后变量尝试8位立即数
-  j=Assemble(pasm,0x400000,&am,0,2,errtext);
-  n=sprintf(s,"%3i  ",j);
-  for (i=0; i<j; i++) n+=sprintf(s+n,"%02X ",am.code[i]);
-  if (j<=0) sprintf(s+n,"  error=\"%s\"",errtext);
-  printf("%s\n",s);
+	//快速确定命令的大小。
+	printf("\r\n=============================================================================\r\n快速确定命令的大小\r\n\n");
+	l=Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00\x11\x22\x33\x44\x55\x66",10,0x400000,&da,DISASM_SIZE);
+	printf("命令的大小 = %i bytes\n",l);
 
-  //错误，无法确定操作数的大小
-  pasm="add dword ptr ds:[0x475AE0],0x1";//原来:pasm="MOV [475AE0],20";
-  printf("%s:\n",pasm);
-  j=Assemble(pasm,0x400000,&am,0,4,errtext);
-  n=sprintf(s,"%3i  ",j);
-  for (i=0; i<j; i++) n+=sprintf(s+n,"%02X ",am.code[i]);
-  if (j<=0) sprintf(s+n,"  error=\"%s\"",errtext);
-  printf("%s\n",s);
+	printf("\r\n=============================================================================\r\nADD [DWORD 475AE0],1\r\n");
+	pasm = "ADD [DWORD 475AE0],1";
+	j = Assemble(pasm, 0x400000, &am, 0, 0, errtext);
+	n = sprintf(s, "%3i  ", j);
+	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
+	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
+	printf("32位立即数:%s\r\n", s);
 
-  // Show results.
-  Sleep(1000);
-  return 0;
+	printf("\r\n=============================================================================\r\nADD [DWORD 475AE0],1\r\n");
+	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
+	n = sprintf(s, "%3i  ", j);
+	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
+	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
+	printf(" 8位立即数:%s\r\n", s);
+
+	printf("\r\n=============================================================================\r\n修复：这一句本来会出错,反回的长度是这一条汇编语句的长度的负数\r\n");
+	pasm = "push 7f";
+	printf("%s\r\n", pasm);
+	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
+	n = sprintf(s, "%3i  ", j);
+	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
+	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
+	printf("%s\r\n", s);
+	printf("\r\n=============================================================================\r\n修复：这一句本来汇编出来的是 A1 00 E0 04 00\r\n");
+	pasm = "mov eax,dword ptr [40E000]";
+	printf("%s\n", pasm);
+	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
+	n = sprintf(s, "%3i  ", j);
+	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
+	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
+	printf("%s\n", s);
+	printf("\r\n=============================================================================\r\n");
+	// Show results.
+	return 0;
 };

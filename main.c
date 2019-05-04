@@ -73,16 +73,35 @@ int main(main)
 			  0xE0,0xFD,0x8B,0x4D,0x0C,0x89,0x41,0x04,0x64,0x8B,\r\n\
 			  0x3D,0x00,0x00,0x00,0x00\r\n下面是上面的数据的反汇编:\r\n";
 	printf(str);
-	for (unsigned long i = 0; i < 65;)
+	for (unsigned long i = 0; i < 65; i += l)
 	{
+		
+		// da.code_format 反汇编代码格式
+		da.code_format = 0;   // 0-普通
+	  //da.code_format = 1; //1-在立即数后面加上'H'
+	  //da.code_format = 2; //2-立即数为C格式
+
+		da.lowercase = 0;
+	  //da.lowercase = 1;//小写
+
+		da.ideal = 0;
+	  //da.ideal = 1;//ideal模式
+
+		da.putdefseg = 0;
+	  //da.putdefseg = 1;//显示段的信息
+
 		l = Disasm32(buf, &da, 0x410000, 4);
-		i += l;
-		printf("%08x  %-24s%-8s%-30s;%-3ibyte\r\n", da.ip, da.dump, da.cmdstr, da.result, da.bytes);
+		//da.index 当前数据位置的索引
+		//da.ip 数据地址
+		//da.dump 机器码信息
+		//da.cmdstr 反汇编命令
+		//da.result 反汇编代码
+		//da.bytes = l =  机器码指令的字节数
+		printf("%-5d %08x  %-24s%-8s%-30s;%-3ibyte\r\n", da.index, da.ip, da.dump, da.cmdstr, da.result, da.bytes);
 	}
 	printf("\r\n=============================================================================\r\nCALL 45187C 反汇编\r\n\n");
 	// CALL 45187C 反汇编
-	l = Disasm("\xE8\x1F\x14\x00\x00",
-		5, 0x450458, &da, 3);
+	l = Disasm("\xE8\x1F\x14\x00\x00", 5, 0x450458, &da, 3);
 	printf("%3i  %-24s%-8s%-20s   jmpconst=%4X\r\n", l, da.dump, da.cmdstr, da.result, da.jmpconst);
 	printf("\r\n=============================================================================\r\nJNZ 450517 反汇编\r\n\n");
 	// JNZ 450517 的反汇编
@@ -91,12 +110,6 @@ int main(main)
 	printf("%3i  %-24s%-8s%-20s   jmpconst=%4X\r\n", l, da.dump, da.cmdstr, da.result, da.jmpconst);
 
 	printf("\r\n=============================================================================\r\n");
-
-
-
-
-
-
 
 	//反汇编程序的演示。
 	printf("\nAssembler:\r\n");
@@ -138,6 +151,6 @@ int main(main)
 	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
 	printf("%s\n", s);
 	printf("\r\n=============================================================================\r\n");
-	// Show results.
+	// Show results.	
 	return 0;
 };

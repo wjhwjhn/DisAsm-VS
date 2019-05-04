@@ -274,10 +274,11 @@ typedef struct t_disasm
 {              // Results of disassembling
 	unsigned long          ip;           // Instrucion pointer
 	char           dump[TEXTLEN];        // Hexadecimal dump of the command
-	char			 cmdstr[8];			   // Disassembled command
+	char		   cmdstr[8];			 // Disassembled command
 	char           result[TEXTLEN];      // 不包括汇编指令的汇编代码
 
-	unsigned char	 bytes;				   // 机器码指令的字节数
+	
+
 	char           comment[TEXTLEN];     // Brief comment
 	int            cmdtype;              // One of C_xxx
 	int            memtype;              // Type of addressed variable in memory
@@ -294,7 +295,9 @@ typedef struct t_disasm
 	int            error;                // Error while disassembling command
 	int            warnings;             // Combination of DAW_xxx 
 
-	unsigned long	 index;				   // 当前数据缓冲区的索引直
+	//新增
+	unsigned char	 bytes;				   // 机器码指令的字节数
+	unsigned long	 index;				   // 当前数据缓冲区的索引
 	int       ideal;                // Force IDEAL decoding mode
 	int       lowercase;            // Force lowercase display
 	int       putdefseg;            // Display default segments in listing

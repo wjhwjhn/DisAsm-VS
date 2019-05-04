@@ -1797,7 +1797,7 @@ unsigned long Disasm32(void* src, t_disasm* disasm, unsigned long startaddr, int
 		disasm->bytes = 0;
 
 		if (disasm->ideal != 1)disasm->ideal = 0;
-		if (disasm->code_format != 1 && disasm->code_format != 2)disasm->code_format = 0;
+		if (disasm->code_format != 1 && disasm->code_format != 2)	disasm->code_format = 0;
 		if (disasm->lowercase != 1)disasm->lowercase = 1;
 		if (disasm->putdefseg != 1)disasm->putdefseg = 0;
 	}

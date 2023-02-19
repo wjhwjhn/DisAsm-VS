@@ -334,6 +334,7 @@ unique int       lockedbus;            // Accept LOCK prefixes
 unique int       stackalign;           // Accept unaligned stack operations
 unique int       iswindowsnt;          // When checking for dangers, assume NT
 
+unsigned long Disasm32(void* src, t_disasm* disasm, unsigned long startaddr, int disasmmode);
 int    Assemble(char *cmd,ulong ip,t_asmmodel *model,int attempt,
          int constsize,char *errtext);
 int    Checkcondition(int code,ulong flags);

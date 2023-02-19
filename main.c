@@ -43,14 +43,14 @@ int Printfloat8(char *s,double d) - 将8字节浮点常量转换为文本而不会导致异常.
 
 #include "disasm.h"
 
-int main(main) 
+int main(main)
 {
-	int i=0,j=0,n=0;
-	char* pasm = {0};
-	char s[TEXTLEN] = { 0 }, errtext[TEXTLEN] = {0};
-	ulong l=0;
-	t_disasm da = {0};
-	t_asmmodel am = {0};
+	int i = 0, j = 0, n = 0;
+	char* pasm = { 0 };
+	char s[TEXTLEN] = { 0 }, errtext[TEXTLEN] = { 0 };
+	ulong l = 0;
+	t_disasm da = { 0 };
+	t_asmmodel am = { 0 };
 	BYTE buf[65 + 8] =
 	{
 		/*0xC6 ,0x84 ,0x24 ,0xD0 ,03 ,00 ,00 ,00,*/
@@ -73,22 +73,23 @@ int main(main)
 			  0xE0,0xFD,0x8B,0x4D,0x0C,0x89,0x41,0x04,0x64,0x8B,\r\n\
 			  0x3D,0x00,0x00,0x00,0x00\r\n下面是上面的数据的反汇编:\r\n";
 	printf(str);
+
 	for (unsigned long i = 0; i < 65; i += l)
 	{
-		
+
 		// da.code_format 反汇编代码格式
 		da.code_format = 0;   // 0-普通
-	  //da.code_format = 1; //1-在立即数后面加上'H'
-	  //da.code_format = 2; //2-立即数为C格式
+		//da.code_format = 1; //1-在立即数后面加上'H'
+		//da.code_format = 2; //2-立即数为C格式
 
 		da.lowercase = 0;
-	  //da.lowercase = 1;//小写
+		//da.lowercase = 1;//小写
 
 		da.ideal = 0;
-	  //da.ideal = 1;//ideal模式
+		//da.ideal = 1;//ideal模式
 
 		da.putdefseg = 0;
-	  //da.putdefseg = 1;//显示段的信息
+		//da.putdefseg = 1;//显示段的信息
 
 		l = Disasm32(buf, &da, 0x410000, 4);
 		//da.index 当前数据位置的索引
@@ -99,11 +100,14 @@ int main(main)
 		//da.bytes = l =  机器码指令的字节数
 		printf("%-5d %08x  %-24s%-8s%-30s;%-3ibyte\r\n", da.index, da.ip, da.dump, da.cmdstr, da.result, da.bytes);
 	}
-	printf("\r\n=============================================================================\r\nCALL 45187C 反汇编\r\n\n");
+
+	printf("\r\n=============================================================================\r\n");
+	printf("CALL 45187C 反汇编\r\n\n");
 	// CALL 45187C 反汇编
 	l = Disasm("\xE8\x1F\x14\x00\x00", 5, 0x450458, &da, 3);
 	printf("%3i  %-24s%-8s%-20s   jmpconst=%4X\r\n", l, da.dump, da.cmdstr, da.result, da.jmpconst);
-	printf("\r\n=============================================================================\r\nJNZ 450517 反汇编\r\n\n");
+	printf("\r\n=============================================================================\r\n");
+	printf("JNZ 450517 反汇编\r\n\n");
 	// JNZ 450517 的反汇编
 	l = Disasm("\x75\x72",
 		2, 0xD504A300, &da, DISASM_CODE);
@@ -115,11 +119,13 @@ int main(main)
 	printf("\nAssembler:\r\n");
 
 	//快速确定命令的大小。
-	printf("\r\n=============================================================================\r\n快速确定命令的大小\r\n\n");
-	l=Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00\x11\x22\x33\x44\x55\x66",10,0x400000,&da,DISASM_SIZE);
-	printf("命令的大小 = %i bytes\n",l);
+	printf("\r\n=============================================================================\r\n");
+	printf("快速确定命令的大小\r\n\n");
+	l = Disasm("\x81\x05\xE0\x5A\x47\x00\x01\x00\x00\x00\x11\x22\x33\x44\x55\x66", 10, 0x400000, &da, DISASM_SIZE);
+	printf("命令的大小 = %i bytes\n", l);
 
-	printf("\r\n=============================================================================\r\nADD [DWORD 475AE0],1\r\n");
+	printf("\r\n=============================================================================\r\n");
+	printf("ADD [DWORD 475AE0],1\r\n");
 	pasm = "ADD [DWORD 475AE0],1";
 	j = Assemble(pasm, 0x400000, &am, 0, 0, errtext);
 	n = sprintf(s, "%3i  ", j);
@@ -127,14 +133,16 @@ int main(main)
 	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
 	printf("32位立即数:%s\r\n", s);
 
-	printf("\r\n=============================================================================\r\nADD [DWORD 475AE0],1\r\n");
+	printf("\r\n=============================================================================\r\n");
+	printf("ADD [DWORD 475AE0],1\r\n");
 	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
 	n = sprintf(s, "%3i  ", j);
 	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
 	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
 	printf(" 8位立即数:%s\r\n", s);
 
-	printf("\r\n=============================================================================\r\n修复：这一句本来会出错,反回的长度是这一条汇编语句的长度的负数\r\n");
+	printf("=============================================================================\r\n");
+	printf("修复：这一句本来会出错,反回的长度是这一条汇编语句的长度的负数\r\n");
 	pasm = "push 7f";
 	printf("%s\r\n", pasm);
 	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
@@ -142,7 +150,9 @@ int main(main)
 	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
 	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
 	printf("%s\r\n", s);
-	printf("\r\n=============================================================================\r\n修复：这一句本来汇编出来的是 A1 00 E0 04 00\r\n");
+
+	printf("=============================================================================\r\n");
+	printf("修复：这一句本来汇编出来的是 A1 00 E0 04 00\r\n");
 	pasm = "mov eax,dword ptr [40E000]";
 	printf("%s\n", pasm);
 	j = Assemble(pasm, 0x400000, &am, 0, 2, errtext);
@@ -150,7 +160,6 @@ int main(main)
 	for (i = 0; i < j; i++) n += sprintf(s + n, "%02X ", am.code[i]);
 	if (j <= 0) sprintf(s + n, "  error=\"%s\"", errtext);
 	printf("%s\n", s);
-	printf("\r\n=============================================================================\r\n");
-	// Show results.	
+	printf("\r\n=============================================================================\r\n");	
 	return 0;
 };
